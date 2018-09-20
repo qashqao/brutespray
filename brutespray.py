@@ -16,6 +16,7 @@ from multiprocessing import Process
 
 services = {}
 loading = False
+version = 'v1.6.4'
 
 class colors:
     white = "\033[1;37m"
@@ -57,7 +58,7 @@ banner = colors.red + r"""
         ╚═════╝ ╚═╝  ╚═╝ ╚═════╝    ╚═╝   ╚══════╝╚══════╝╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   
                                                                                    
 """+'\n' \
-+ '\n brutespray.py v1.6.3' \
++ '\n brutespray.py '+ version \
 + '\n Created by: Shane Young/@x90skysn3k && Jacob Robles/@shellfail' \
 + '\n Inspired by: Leon Johnson/@sho-luv' \
 + '\n Credit to Medusa: JoMo-Kun / Foofus Networks <jmk@foofus.net>\n' + colors.normal
@@ -86,7 +87,7 @@ def interactive():
                 print "Service: " + colors.green + str(serv) + colors.normal + " on port " + colors.red + str(port) + colors.normal + " with " + colors.red + str(plist) + colors.normal + " hosts"
 
         args.service = raw_input('\n' + colors.lightblue + 'Enter services you want to brute - default all (ssh,ftp,etc): ' + colors.red)
-        
+
         args.threads = raw_input(colors.lightblue + 'Enter the number of parallel threads (default is 2): ' + colors.red)
 
         args.hosts = raw_input(colors.lightblue + 'Enter the number of parallel hosts to scan per service (default is 1): ' + colors.red)
@@ -105,7 +106,7 @@ def interactive():
                 args.passlist = raw_input(colors.lightblue + 'Enter a passlist you would like to use: ' + colors.red)
                 if args.passlist == "":
                     args.passlist = None
-            
+
         if args.username is None or args.password is None: 
             singluser = raw_input(colors.lightblue + 'Would to specify a single username or password (y/n): ' + colors.red)
         if singluser == "y":
@@ -127,13 +128,43 @@ def interactive():
 
     print colors.normal
 
+MEDUSA_MAP = {"ms-sql-s": "mssql",
+            "microsoft-ds": "smbnt",
+            "pcanywheredata": "pcanywhere",
+            "postgresql": "postgres",
+            "shell": "rsh",
+            "exec": "rexec",
+            "login": "rlogin",
+            "smtps": "smtp",
+            "submission": "smtp",
+            "imaps": "imap",
+            "pop3s": "pop3",
+            "iss-realsecure": "vmauthd",
+            "snmptrap": "snmp"}
+
+PATATOR_MAP = {"mssql_login": "mssql",
+              "microsoft-ds": "smb_login",
+              "ftp": "ftp_login",
+              "login": "rlogin_login",
+              "smtps": "smtp_login",
+              "submission": "smtp_login",
+              "imaps": "imap_login",
+              "pop3s": "pop_login",
+              "iss-realsecure": "vmauthd_login",
+              "snmptrap": "snmp_login"}
+
 def make_dic_gnmap():
     global loading
     global services
+
+    supported = ['ssh','ftp','postgres','telnet','mysql','ms-sql-s','shell',
+                 'vnc','imap','imaps','nntp','pcanywheredata','pop3','pop3s',
+                 'exec','login','microsoft-ds','smtp', 'smtps','submission',
+                 'svn','iss-realsecure','snmptrap','snmp']
+
     port = None
     with open(args.file, 'r') as nmap_file:
         for line in nmap_file:
-            supported = ['ssh','ftp','postgres','telnet','mysql','ms-sql-s','shell','vnc','imap','imaps','nntp','pcanywheredata','pop3','pop3s','exec','login','microsoft-ds','smtp', 'smtps','submission','svn','iss-realsecure','snmptrap','snmp']
             for name in supported:
                 matches = re.compile(r'([0-9][0-9]*)/open/[a-z][a-z]*//' + name)
                 try:
@@ -143,76 +174,29 @@ def make_dic_gnmap():
 
                 ip = re.findall(r'[0-9]+(?:\.[0-9]+){3}', line)
                 tmp_ports = matches.findall(line)
-                for tmp_port in tmp_ports:
-                    if args.use_patator is False:
-                        if name == "ms-sql-s":
-                            name = "mssql"
-                        if name == "microsoft-ds":
-                            name = "smbnt"
-                        if name == "pcanywheredata":
-                            name = "pcanywhere"
-                        if name == "shell":
-                            name = "rsh"
-                        if name == "exec":
-                            name = "rexec"
-                        if name == "login":
-                            name = "rlogin"
-                        if name == "smtps" or name == "submission":
-                            name = "smtp"
-                        if name == "imaps":
-                            name = "imap"
-                        if name == "pop3s":
-                            name = "pop3"
-                        if name == "iss-realsecure":
-                            name = "vmauthd"
-                        if name == "snmptrap":
-                            name = "snmp"
-                        if name in services:
-                            if tmp_port in services[name]:
-                                services[name][tmp_port] += ip
-                            else:
-                                services[name][tmp_port] = ip
-                        else:
-                            services[name] = {tmp_port:ip}
-                    else:
-                        if name == "mssql_login":
-                            name = "mssql"
-                        if name == "microsoft-ds":
-                            name = "smb_login"
-                        if name == "ftp":
-                            name = "ftp_login"
-                        # if name == "pcanywheredata":
-                        #     name = "pcanywhere"
-                        # if name == "shell":
-                        #     name = "rsh"
-                        # if name == "exec":
-                        #     name = "rexec"
-                        if name == "login":
-                            name = "rlogin_login"
-                        if name == "smtps" or name == "submission":
-                            name = "smtp_login"
-                        if name == "imaps":
-                            name = "imap_login"
-                        if name == "pop3s":
-                            name = "pop_login"
-                        if name == "iss-realsecure":
-                            name = "vmauthd_login"
-                        if name == "snmptrap":
-                            name = "snmp_login"
-                        if name in services:
-                            if tmp_port in services[name]:
-                                services[name][tmp_port] += ip
-                            else:
-                                services[name][tmp_port] = ip
-                        else:
-                            services[name] = {tmp_port: ip}
 
+                for tmp_port in tmp_ports:
+                    if args.use_patator:
+                        name = PATATOR_MAP.get(name, name)
+                    else:
+                        name = MEDUSA_MAP.get(name, name)
+
+                    if name in services:
+                        if tmp_port in services[name]:
+                            services[name][tmp_port] += ip
+                        else:
+                            services[name][tmp_port] = ip
+                    else:
+                        services[name] = {tmp_port:ip}
     loading = True
 
 def make_dic_xml():
     global loading
     global services
-    supported = ['ssh','ftp','postgresql','telnet','mysql','ms-sql-s','rsh','vnc','imap','imaps','nntp','pcanywheredata','pop3','pop3s','exec','login','microsoft-ds','smtp','smtps','submission','svn','iss-realsecure','snmptrap','snmp']
+    supported = ['ssh','ftp','postgresql','telnet','mysql','ms-sql-s','rsh',
+                 'vnc','imap','imaps','nntp','pcanywheredata','pop3','pop3s',
+                 'exec','login','microsoft-ds','smtp','smtps','submission',
+                 'svn','iss-realsecure','snmptrap','snmp']
     doc = xml.dom.minidom.parse(args.file)
     for host in doc.getElementsByTagName("host"):
         try:
@@ -250,68 +234,20 @@ def make_dic_xml():
                     product_extra = ""
                 name = port_name.encode("utf-8")
                 tmp_port = pn.encode("utf-8")
+
                 if name in supported:
-                    if args.use_patator is False:
-                        if name == "postgresql":
-                            name = "postgres"
-                        if name == "ms-sql-s":
-                            name = "mssql"
-                        if name == "microsoft-ds":
-                            name = "smbnt"
-                        if name == "pcanywheredata":
-                            name = "pcanywhere"
-                        if name == "shell":
-                            name = "rsh"
-                        if name == "exec":
-                            name = "rexec"
-                        if name == "login":
-                            name = "rlogin"
-                        if name == "smtps" or name == "submission":
-                            name = "smtp"
-                        if name == "imaps":
-                            name = "imap"
-                        if name == "pop3s":
-                            name = "pop3"
-                        if name == "iss-realsecure":
-                            name = "vmauthd"
-                        if name == "snmptrap":
-                            name = "snmp"
-                        if name in services:
-                            if tmp_port in services[name]:
-                                services[name][tmp_port] += iplist
-                            else:
-                                services[name][tmp_port] = iplist
-                        else:
-                            services[name] = {tmp_port: iplist}
+                    if args.use_patator:
+                        name = PATATOR_MAP.get(name, name)
                     else:
-                        if name == "mssql_login":
-                            name = "mssql"
-                        if name == "microsoft-ds":
-                            name = "smb_login"
-                        if name == "ftp":
-                            name = "ftp_login"
-                        if name == "login":
-                            name = "rlogin_login"
-                        if name == "smtps" or name == "submission":
-                            name = "smtp_login"
-                        if name == "imaps":
-                            name = "imap_login"
-                        if name == "pop3s":
-                            name = "pop_login"
-                        if name == "iss-realsecure":
-                            name = "vmauthd_login"
-                        if name == "snmptrap":
-                            name = "snmp_login"
-                        if name in services:
-                            if tmp_port in services[name]:
-                                services[name][tmp_port] += iplist
-                            else:
-                                services[name][tmp_port] = iplist
+                        name = MEDUSA_MAP.get(name, name)
+                    if name in services:
+                        if tmp_port in services[name]:
+                            services[name][tmp_port] += iplist
                         else:
-                            services[name] = {tmp_port: iplist}
-
+                            services[name][tmp_port] = iplist
+                    else:
+                        services[name] = {tmp_port:iplist}
     loading = True
-
 
 def brute(service, port, fname, output):
     if args.userlist is None and args.username is None:
@@ -333,7 +269,7 @@ def brute(service, port, fname, output):
     elif args.password:
         passlist = args.password
         parg = '-p'
-    
+
     if args.continuous:
         cont = ''
     else:
@@ -344,8 +280,10 @@ def brute(service, port, fname, output):
     else:
         aarg = ''
         auth = ''
+
     if args.use_patator is False:
         p = subprocess.Popen(['medusa',
+                              '-b',
                               '-H', fname, uarg, userlist, parg, passlist,
                               '-M', service,
                               '-t', args.threads,
@@ -375,19 +313,19 @@ def brute(service, port, fname, output):
         if 'SUCCESS' in line:
             f = open(output_file, 'a')
             f.write(out + line)
-            f.close()    
-   
+            f.close()
+
 def animate():
-        sys.stdout.write('\rStarting to brute, please make sure to use the right amount of ' + colors.green + 'threads(-t)' + colors.normal + ' and ' + colors.green + 'parallel hosts(-T)' + colors.normal + '...  \n')
-        t_end = time.time() + 2
-        for c in itertools.cycle(['|', '/', '-', '\\']):
-            if not time.time() < t_end:
-                break
-            sys.stdout.write('\rOutput will be written to the folder: ./' + colors.green + args.output + colors.normal + "/ "+ c)
-            sys.stdout.flush()
-            time.sleep(0.1)
-        sys.stdout.write('\n\nBrute-Forcing...     \n') 
-        time.sleep(1)
+    sys.stdout.write('\rStarting to brute, please make sure to use the right amount of ' + colors.green + 'threads(-t)' + colors.normal + ' and ' + colors.green + 'parallel hosts(-T)' + colors.normal + '...  \n')
+    t_end = time.time() + 2
+    for c in itertools.cycle(['|', '/', '-', '\\']):
+        if not time.time() < t_end:
+            break
+        sys.stdout.write('\rOutput will be written to the folder: ./' + colors.green + args.output + colors.normal + "/ "+ c)
+        sys.stdout.flush()
+        time.sleep(0.1)
+    sys.stdout.write('\n\nBrute-Forcing...     \n')
+    time.sleep(1)
 
 def loading():
     for c in itertools.cycle(['|', '/', '-', '\\']):
@@ -398,13 +336,13 @@ def loading():
         time.sleep(0.01)
 
 def parse_args():
-    
+
     parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter, description=\
- 
+
     "Usage: python brutespray.py <OPTIONS> \n")
 
     menu_group = parser.add_argument_group(colors.lightblue + 'Menu Options' + colors.normal)
-    
+
     menu_group.add_argument('-f', '--file', help="GNMAP or XML file to parse", required=False, default=None)
     menu_group.add_argument('-o', '--output', help="Directory containing successful attempts", default="brutespray-output")
     menu_group.add_argument('-s', '--service', help="specify service to attack", default="all")
@@ -433,7 +371,10 @@ if __name__ == "__main__":
     print(banner)
     args = parse_args()
 
-    supported = ['ssh','ftp','telnet','vnc','mssql','mysql','postgresql','rsh','imap','nntp','pcanywhere','pop3','rexec','rlogin','smbnt','smtp','svn','vmauthd','snmp']
+    supported = ['ssh','ftp','telnet','vnc','mssql','mysql','postgresql','rsh',
+                'imap','nntp','pcanywhere','pop3',
+                'rexec','rlogin','smbnt','smtp',
+                'svn','vmauthd','snmp']
     #temporary directory for ip addresses
 
     if args.modules is True:
@@ -449,14 +390,17 @@ if __name__ == "__main__":
     if not os.path.exists(args.output):
         os.mkdir(args.output)
 
-    if args.use_patator is False:
-        if os.system("command -v medusa > /dev/null") != 0:
-            sys.stderr.write("Command medusa not found. Please install medusa before using brutespray")
-            exit(3)
+    if args.use_patator:
+        prog = 'patator'
     else:
-        if os.system("command -v patator > /dev/null") != 0:
-            sys.stderr.write("Command patator not found. Please install patator before using brutespray")
-            exit(3)
+        prog = 'medusa'
+    tmpcmd = 'command -v '
+    tmpcmd += prog
+    tmpcmd += ' > /dev/null'
+
+    if os.system(tmpcmd) != 0:
+        sys.stderr.write("Command {} not found. Please install {} before using brutespray".format(prog, prog))
+        exit(3)
 
     if args.file is None:
         sys.exit(0)
@@ -464,7 +408,7 @@ if __name__ == "__main__":
     if args.passlist and not os.path.isfile(args.passlist):
         sys.stderr.write("Passlist given does not exist. Please check your file or path\n")
         exit(3)
-    
+
     if args.userlist and not os.path.isfile(args.userlist):
         sys.stderr.write("Userlist given does not exist. Please check your file or path\n")
         exit(3)
@@ -477,17 +421,17 @@ if __name__ == "__main__":
             make_dic_xml()
         except:
             make_dic_gnmap()
-    
+
         if args.interactive is True:
             interactive()
-    
+
         animate()
-    
+
         if services == {}:
             print "\nNo brutable services found.\n Please check your Nmap file."
     else:
         print "\nError loading file, please check your filename."
- 
+
     to_scan = args.service.split(',')
     for service in services:
         if service in to_scan or to_scan == ['all']:
